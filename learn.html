@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.js"
+      integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+
+  <body>
+    <div id="content">
+      <div id="total">total of</div>
+      <input type="text" id="startAt" value="0" />
+      <button id="startAtBut">Start At</button>
+      <hr />
+
+      <div class="fl" style="display: flex; gap: 30px">
+        <div id="word" style="font-size: 3rem"></div>
+        <div id="translation" style="font-size: 2rem"></div>
+      </div>
+      <div id="result" style="font-size: 1.3rem">&nbsp;</div>
+      <input type="text" id="inputF" />
+
+      <button id="nextBut">Next</button>
+      <button id="helpBut">Show / Hide Help / Press "/"</button>
+      <button id="skiptBut">Skip</button><br />
+      <div id="stats">&nbsp;</div>
+    </div>
+
+    Dutch<textarea id="dutchta"></textarea>English<textarea id="englishta"></textarea
+    ><button id="setBut">Set</button><br />
+
+    <script>
+      $(function () {
+        var globalI =
+          getCookie("globalI") == "" ? 0 : parseInt(getCookie("globalI"));
+
+        var correct = new Audio("correct.wav");
+        var wrong = new Audio("wrong.mp3");
+        var combinedArray = [];
+        var onceAgain = 0;
+
+        function prepareStart(combinedArray) {
+          var dutchw = $("#dutchta").val();
+          var englishw = $("#englishta").val();
+          var dutch = dutchw.split("\n");
+          var english = englishw.split("\n");
+
+          for (let index = 0; index < dutch.length; index++) {
+            const element = dutch[index];
+            combinedArray.push([element, english[index]]);
+          }
+          return combinedArray;
+        }
+
+        function shuffle(array) {
+          var currentIndex = array.length,
+            temporaryValue,
+            randomIndex;
+
+          // While there remain elements to shuffle...
+          while (0 !== currentIndex) {
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+          }
+
+          return array;
+        }
+
+        function nextInLine(first = false) {
+          if (!first) globalI++;
+
+          // alert(dutch.length)
+          $("#word").html(combinedArray[globalI][0]);
+          $("#translation").html(combinedArray[globalI][1]);
+          $("#translation").hide();
+          updateStatus();
+        }
+
+        function updateStatus() {
+          $("#stats").html("Number " + globalI + " of " + combinedArray.length);
+          //alert("d")
+          setCookie("globalI", globalI, 365);
+          //   Cookies.set('globalI', globalI);
+        }
+
+        function checkCorrect() {
+          var vall = $("#inputF").val().toLowerCase();
+          $("#inputF").val("");
+
+          var theVal = combinedArray[globalI][1].toLowerCase();
+          if (onceAgain == 0) {
+            theVal = combinedArray[globalI][1].toLowerCase();
+          } else {
+            var theVal =
+              combinedArray[globalI][0].toLowerCase() + " " + combinedArray[globalI][1].toLowerCase();
+          }
+
+          if (theVal == vall) {
+            correct.play();
+            if (onceAgain == 0) {
+              onceAgain++;
+
+              $("#result").html(
+                "<span style='color:green'>Goed, Nu in Dutch, en in engels (space between)</span>"
+              );
+              //$("#result").show();
+            } else {
+              $("#result").html("<span style='color:green'>Goed</span>");
+              //$("#result").show();
+              setTimeout(() => {
+                $("#result").html("&nbsp;");
+              }, 1000);
+              onceAgain = 0;
+              //globalI++;
+              nextInLine();
+            }
+          } else {
+            wrong.play();
+            $("#result").html("<span style='color:red'>Nee</span>");
+          }
+        }
+
+        function getCookie(cname) {
+          var name = cname + "=";
+          var decodedCookie = decodeURIComponent(document.cookie);
+          var ca = decodedCookie.split(";");
+          for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == " ") {
+              c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+            }
+          }
+          return "";
+        }
+
+        function setCookie(cname, cvalue, exdays) {
+          var d = new Date();
+          d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+          var expires = "expires=" + d.toUTCString();
+          document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
+
+        /// alert("")
+
+        $("#setBut").click(function () {
+          combinedArray = prepareStart(combinedArray);
+
+          combinedArray = shuffle(combinedArray);
+
+          nextInLine(true);
+          updateStatus();
+        });
+        $("#helpBut").click(function () {
+          $("#translation").toggle();
+        });
+        $("#skiptBut").click(function () {
+          nextInLine();
+          // alert("hhh")
+        });
+        $("#nextBut").click(() => {
+          checkCorrect();
+        });
+        $("#startAtBut").click(() => {
+          // alert($("#startAt").val())
+          globalI = parseInt($("#startAt").val());
+          setCookie("globalI", $("#startAt").val(), 365);
+          nextInLine(true);
+        });
+
+        $("#inputF").keypress(function (e) {
+          var key = e.which;
+          //alert(key)
+          // 47 "/" code
+          if (key == 47) {
+            $("#translation").toggle();
+            setTimeout(() => {
+              $("#inputF").val("");
+            }, 20);
+          }
+          if (key == 13) {
+            // the enter key code
+            // alert("yes")
+            checkCorrect();
+          }
+        });
+
+        // Handler for .ready() called.
+      });
+    </script>
+  </body>
+</html>
